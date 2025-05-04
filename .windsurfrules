@@ -1,0 +1,59 @@
+# .windsurfrules - Frontend (Compensation Calculator UI)
+
+## Project Goal
+Implement an interactive Compensation Simulator UI using React (TypeScript) and Material-UI. Features: data upload, param adjustment, backend calculation via API, results table/charts, export.
+
+## Environment & Tech Stack
+- **Framework:** React 18+
+- **Language:** TypeScript (Strict mode, NO `any`)
+- **UI Library:** Material-UI (`@mui/material`, `@mui/x-data-grid`)
+- **Styling:** Emotion, MUI ThemeProvider, `sx` prop.
+- **Visualization:** Recharts
+- **Forms & Validation:** Formik, Yup
+- **Data Handling:** PapaParse (CSV import), `json2csv` (CSV export)
+- **Networking:** Axios
+- **File Upload:** `react-dropzone`
+- **State Management:** React Context API + `useReducer` (`ScenarioContext`)
+- **Routing:** `react-router-dom` (if multi-page)
+- **Testing:** Jest, React Testing Library
+
+## Coding Standards & Practices
+- **Component Structure:** Functional components with hooks.
+- **Modularity:** Small, reusable components in logical directories (`src/components/...`, `src/api`, `src/context`).
+- **TypeScript:** Use interfaces/types for props, state, API payloads (`Employee`, `CompResult`, `src/types.ts`).
+- **Styling:** MUI ThemeProvider for global theme (e.g., `#003366`, `#29ABE2`), `sx` prop for local styles. Consistent spacing (MUI Grid, Box).
+- **Readability:** Clean, well-commented code.
+- **Accessibility:** Ensure components are accessible (`aria-label`, keyboard nav, MUI guidelines).
+
+## Core Components & Features
+- **`UploadPanel` (`src/components/controls/UploadPanel.tsx`):** `react-dropzone` for CSV upload. Parse (`papaparse`), validate, call API (`POST /api/upload-data/` via `compensationService`). Update `ScenarioContext` (`SET_EMPLOYEES`). Handle loading/errors (Snackbar).
+- **`RevenueDeltaSlider` & `SensitivitySlider` (`src/components/controls/...`):** MUI `Slider`. Update `ScenarioContext` (`SET_SCENARIO`). Accessibility labels.
+- **`CompTable` (`src/components/table/CompTable.tsx`):** MUI `DataGrid`. Display inputs & `results` (from context). Define `GridColDef` (types, formatting, `valueFormatter` for currency utility). Enable inline editing for specified fields (`editable: true`), custom editors (e.g., dropdown for Quintile). Implement `onCellEditCommit`: validate (Yup), dispatch `UPDATE_EMPLOYEE`.
+- **`ChartsSection` (`src/components/charts/ChartsSection.tsx`):** `recharts` (Bar, Pie). Visualize `results`/`summary` (distribution, flags). Render only when results available.
+- **`ScenarioSummaryCards` (`src/components/layout/ScenarioSummaryCards.tsx`):** Display aggregate metrics (`summary` from context - e.g., total payroll, avg increase, MRT breaches). Use MUI `Card`/`Paper`.
+- **`Action Bar` / Controls:**
+    - `Run Simulation` Button: Call API (`POST /api/calculate/` via `compensationService`) with context `employees`/`scenario`. Handle loading (`SET_LOADING`), update `results` (`SET_RESULTS`)/`error` (`SET_ERROR`). Disable during loading/no data.
+    - `ExportButton` (`src/components/controls/ExportButton.tsx`): Convert context `results` to CSV (`json2csv`), trigger download. Disable if no results.
+
+## State Management (`src/context/ScenarioContext.tsx`)
+- **Context:** `ScenarioContext` using `React.createContext`.
+- **State Shape:** Interface includes: `employees: Employee[]`, `scenario: object`, `results: CompResult[] | null`, `summary: object | null`, `loading: boolean`, `error: string | null`.
+- **Reducer:** Handle actions: `SET_EMPLOYEES`, `UPDATE_EMPLOYEE`, `SET_SCENARIO`, `SET_LOADING`, `SET_RESULTS`, `SET_ERROR`. Ensure immutable updates.
+- **Provider:** `ScenarioProvider` using `useReducer`, providing `state`/`dispatch`. Wrap relevant app parts.
+
+## Backend API Integration (`src/api/compensationService.ts`)
+- **Abstraction:** Functions wrapping Axios calls (`uploadEmployees`, `calculateScenario`).
+- **Endpoints (Assumed):**
+    - `POST /api/upload-data/` (Payload: `Employee[]`, Response: Success/Error)
+    - `POST /api/calculate/` (Payload: `{ employees, scenario }`, Response: `{ results, summary }`)
+- **Data Format:** Handle JS/JSON to backend type conversion (e.g., Decimal as strings). Note API contract assumptions. Graceful API error handling.
+
+## User Experience
+Provide clear loading indicators (MUI Backdrop/Progress), use Snackbar for messages. Ensure responsiveness (MUI Grid). Format numbers (currency utility).
+
+## Testing
+- **Unit Tests:** Jest, React Testing Library. Test reducer logic. Test components in isolation (mock context/API). Verify rendering and interactions trigger correct dispatches/API calls.
+- **Focus:** Data upload, state updates, simulation trigger, results display.
+
+## Output Instructions
+Provide complete React/TypeScript code (separated files/blocks) for components, context, service, etc. Include imports, types, comments. Standard `src/...` structure. Strict TypeScript (no `any`). Note API contract/ambiguity assumptions.
