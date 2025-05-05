@@ -17,10 +17,14 @@ import {
   Alert,
   AppBar,
   Toolbar,
-  useTheme
+  useTheme,
+  Tabs,
+  Tab
 } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import { useScenario } from './context/ScenarioContext';
+import InsightsIcon from '@mui/icons-material/Insights';
+import TableChartIcon from '@mui/icons-material/TableChart';
+import { useScenario } from './SimpleContext';
 import { ActionType } from './types';
 import { calculateScenario } from './api/compensationService';
 
@@ -32,6 +36,35 @@ import CompTable from './components/table/CompTable';
 import ChartsSection from './components/charts/ChartsSection';
 import ScenarioSummaryCards from './components/layout/ScenarioSummaryCards';
 import ExportButton from './components/controls/ExportButton';
+import InsightsDashboard from './charts/InsightsDashboard';
+
+// Tab panel component
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+const TabPanel = (props: TabPanelProps) => {
+  const { children, value, index, ...other } = props;
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`tabpanel-${index}`}
+      aria-labelledby={`tab-${index}`}
+      {...other}
+      style={{ display: value !== index ? 'none' : 'block' }}
+    >
+      {value === index && (
+        <Box sx={{ pt: 3 }}>
+          {children}
+        </Box>
+      )}
+    </div>
+  );
+};
 
 /**
  * Main App component
@@ -41,6 +74,7 @@ const App: React.FC = () => {
   const { state, dispatch } = useScenario();
   const { employees, scenario, loading, error } = state;
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<number>(0);
 
   useEffect(() => {
     if (error) {
@@ -112,6 +146,13 @@ const App: React.FC = () => {
     setSuccessMessage(null);
   };
 
+  /**
+   * Handle tab change
+   */
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setActiveTab(newValue);
+  };
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       {/* App Bar */}
@@ -176,11 +217,48 @@ const App: React.FC = () => {
         {/* Summary Cards */}
         <ScenarioSummaryCards />
 
-        {/* Data Table */}
-        <CompTable />
+        {/* Tabs Navigation */}
+        <Paper sx={{ mb: 4 }}>
+          <Tabs 
+            value={activeTab} 
+            onChange={handleTabChange}
+            variant="fullWidth"
+            sx={{ 
+              borderBottom: 1, 
+              borderColor: 'divider',
+              '& .MuiTab-root': {
+                py: 2
+              }
+            }}
+          >
+            <Tab 
+              icon={<TableChartIcon />} 
+              label="Data View" 
+              iconPosition="start"
+              sx={{ textTransform: 'none' }}
+            />
+            <Tab 
+              icon={<InsightsIcon />} 
+              label="Insights Dashboard" 
+              iconPosition="start"
+              sx={{ textTransform: 'none' }}
+            />
+          </Tabs>
+        </Paper>
 
-        {/* Charts */}
-        <ChartsSection />
+        {/* Tab Panels */}
+        <TabPanel value={activeTab} index={0}>
+          {/* Data Table */}
+          <CompTable />
+
+          {/* Charts */}
+          <ChartsSection />
+        </TabPanel>
+
+        <TabPanel value={activeTab} index={1}>
+          {/* Insights Dashboard */}
+          <InsightsDashboard />
+        </TabPanel>
       </Container>
 
       {/* Footer */}

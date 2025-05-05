@@ -14,6 +14,7 @@ import csv
 import io
 
 from employees.compensation_engine import calculate_unified_compensation
+from employees.analytics import generate_summary
 
 
 class CalculateCompensationView(APIView):
@@ -60,11 +61,24 @@ class CalculateCompensationView(APIView):
                     
                     # Add employee identifier to result
                     if 'id' in employee:
-                        result['id'] = employee['id']
+                        result['employee_id'] = employee['id']
+                    
+                    # Add department and role to result for analytics
+                    if 'department' in employee:
+                        result['department'] = employee['department']
+                    if 'role' in employee:
+                        result['role'] = employee['role']
                     
                     results.append(result)
                 
-                return Response(results)
+                # Generate comprehensive summary using analytics module
+                summary = generate_summary(results, employees, config)
+                
+                # Return both results and summary in the expected format
+                return Response({
+                    'results': results,
+                    'summary': summary
+                })
             else:
                 # Single employee calculation
                 employee = data['employee']
@@ -80,7 +94,20 @@ class CalculateCompensationView(APIView):
                 # Convert Decimal objects to strings for JSON serialization
                 result = self._convert_decimal_to_str(result)
                 
-                return Response(result)
+                # Add department and role to result for analytics
+                if 'department' in employee:
+                    result['department'] = employee['department']
+                if 'role' in employee:
+                    result['role'] = employee['role']
+                
+                # Create a minimal summary for single employee
+                summary = generate_summary([result], [employee], config)
+                
+                # Return both result and summary in the expected format
+                return Response({
+                    'results': [result],
+                    'summary': summary
+                })
                 
         except KeyError as e:
             return Response(
@@ -117,29 +144,34 @@ class CalculateCompensationView(APIView):
         Args:
             config: Configuration dictionary
         """
-        # Convert top-level decimal fields
         decimal_fields = [
-            'revenue_delta', 'adjustment_factor', 
-            'MAX_INCREASE', 'MAX_DECREASE', 
-            'MRT_BONUS_RATIO_CAP'
+            'revenue_delta', 
+            'adjustment_factor', 
+            'performance_multiplier_base',
+            'salary_band_breach_threshold'
         ]
+        
         for field in decimal_fields:
             if field in config and not isinstance(config[field], Decimal):
                 config[field] = Decimal(str(config[field]))
         
-        # Convert nested decimal fields
-        if 'AUM_BRACKET_SHARES' in config:
-            for bracket, value in config['AUM_BRACKET_SHARES'].items():
-                if not isinstance(value, Decimal):
-                    config['AUM_BRACKET_SHARES'][bracket] = Decimal(str(value))
+        # Convert nested decimal values
+        if 'SALARY_BANDS' in config:
+            for role, bands in config['SALARY_BANDS'].items():
+                for level, band in bands.items():
+                    for key in ['min', 'max', 'target']:
+                        if key in band and not isinstance(band[key], Decimal):
+                            band[key] = Decimal(str(band[key]))
         
         if 'AUM_BRACKETS' in config:
-            for bracket, (min_val, max_val) in config['AUM_BRACKETS'].items():
+            for bracket in range(len(config['AUM_BRACKETS'])):
+                min_val = config['AUM_BRACKETS'][bracket][0]
                 if min_val is not None and not isinstance(min_val, Decimal):
                     config['AUM_BRACKETS'][bracket] = (
                         Decimal(str(min_val)),
                         config['AUM_BRACKETS'][bracket][1]
                     )
+                max_val = config['AUM_BRACKETS'][bracket][1]
                 if max_val is not None and not isinstance(max_val, Decimal):
                     config['AUM_BRACKETS'][bracket] = (
                         config['AUM_BRACKETS'][bracket][0],
@@ -195,10 +227,18 @@ class UploadDataView(APIView):
         try:
             # Check if file is in request
             if 'file' not in request.FILES:
-                return Response(
-                    {'error': 'No file provided'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
+                # Check if JSON data was sent instead of a file
+                if isinstance(request.data, list):
+                    # Direct JSON payload of employees
+                    return Response({'employees': request.data})
+                elif 'employees' in request.data:
+                    # JSON payload with employees key
+                    return Response({'employees': request.data['employees']})
+                else:
+                    return Response(
+                        {'error': 'No file or employee data provided'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
             
             # Get file from request
             file = request.FILES['file']
@@ -226,7 +266,8 @@ class UploadDataView(APIView):
                     # Convert to appropriate type
                     if key in ['base_salary', 'aum', 'last_year_revenue']:
                         try:
-                            employee[key] = float(value)  # Use float for frontend compatibility
+                            # Return as string to preserve precision
+                            employee[key] = str(Decimal(value))
                         except ValueError:
                             employee[key] = value
                     elif key == 'team_size':
@@ -234,8 +275,8 @@ class UploadDataView(APIView):
                             employee[key] = int(value)
                         except ValueError:
                             employee[key] = value
-                    elif key == 'mrt_status':
-                        employee[key] = value.lower() in ['true', 'yes', '1']
+                    elif key in ['is_mrt', 'mrt_status']:
+                        employee['is_mrt'] = value.lower() in ['true', 'yes', '1']
                     else:
                         employee[key] = value
                 

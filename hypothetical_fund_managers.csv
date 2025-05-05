@@ -1,0 +1,51 @@
+id,name,department,role,level,base_salary,performance_rating,quintile,aum,is_mrt
+FM-001,Jennifer Santana,Global Equities,Fund Manager,Junior,175000,5,Q5,509,true
+FM-002,April Bowman,Global Equities,Fund Manager,Associate,265000,1,Q2,490,false
+FM-003,Patrick Thompson,Quant Strategies,Fund Manager,Director,200000,4,Q2,1231,true
+FM-004,Michelle Riddle,Alternatives,Fund Manager,Associate,300000,2,Q4,219,false
+FM-005,Andrew Orozco,Alternatives,Fund Manager,Managing Director,80000,5,Q5,847,false
+FM-006,Anthony Hoffman,Global Equities,Fund Manager,Junior,190000,2,Q4,40,false
+FM-007,Jenny Allen,Quant Strategies,Fund Manager,Director,185000,2,Q1,1000,true
+FM-008,Sydney Brown,Quant Strategies,Fund Manager,Director,270000,1,Q3,169,false
+FM-009,Anthony Brown,Quant Strategies,Fund Manager,Director,80000,5,Q4,1373,false
+FM-010,Leslie Murray,Alternatives,Fund Manager,Senior,145000,4,Q5,112,false
+FM-011,Lisa Gonzalez,Quant Strategies,Fund Manager,Senior,215000,3,Q4,1017,true
+FM-012,Collin Warren,Alternatives,Fund Manager,Junior,195000,1,Q3,947,true
+FM-013,Ian Gonzalez,Fixed Income,Fund Manager,Director,210000,3,Q4,494,false
+FM-014,Brendan Carney,Fixed Income,Fund Manager,Associate,150000,4,Q4,1281,false
+FM-015,Claire Watson,Global Equities,Fund Manager,Director,250000,3,Q4,783,true
+FM-016,Jacob Horton,Quant Strategies,Fund Manager,Managing Director,300000,1,Q5,1354,true
+FM-017,Richard Johnson,Global Equities,Fund Manager,Associate,80000,4,Q3,176,false
+FM-018,Pamela Clark,Global Equities,Fund Manager,Director,95000,1,Q2,1283,false
+FM-019,Monique Brown,Multi‑Asset,Fund Manager,Junior,175000,1,Q1,1285,true
+FM-020,John Barnes,Fixed Income,Fund Manager,Senior,160000,1,Q2,1163,true
+FM-021,Jeremy Clay,Fixed Income,Fund Manager,Senior,210000,1,Q3,1478,true
+FM-022,Matthew Knight,Multi‑Asset,Fund Manager,Junior,195000,3,Q5,525,true
+FM-023,Katie Lawson,Global Equities,Fund Manager,Senior,85000,4,Q2,735,false
+FM-024,Lauren Williams,Fixed Income,Fund Manager,Junior,160000,5,Q3,533,true
+FM-025,Paul Robinson,Fixed Income,Fund Manager,Associate,215000,1,Q2,1099,true
+FM-026,Andrew Maynard,Alternatives,Fund Manager,Associate,235000,1,Q1,38,false
+FM-027,Rachael Frederick,Global Equities,Fund Manager,Director,110000,3,Q4,287,false
+FM-028,Harold Watson,Fixed Income,Fund Manager,Associate,190000,1,Q2,910,true
+FM-029,Scott Scott,Multi‑Asset,Fund Manager,Senior,280000,3,Q5,972,true
+FM-030,Jamie Walter,Multi‑Asset,Fund Manager,Director,100000,5,Q1,985,false
+FM-031,Patricia Dillon,Global Equities,Fund Manager,Managing Director,95000,1,Q4,121,false
+FM-032,Sharon Walker,Multi‑Asset,Fund Manager,Associate,280000,2,Q4,1101,true
+FM-033,Joseph Brooks,Fixed Income,Fund Manager,Associate,170000,4,Q2,529,true
+FM-034,Ashley Duncan,Alternatives,Fund Manager,Junior,100000,2,Q5,468,false
+FM-035,Albert Hunter,Fixed Income,Fund Manager,Director,125000,2,Q5,925,false
+FM-036,Cameron Brown,Quant Strategies,Fund Manager,Associate,160000,2,Q4,1101,true
+FM-037,Linda Jimenez,Fixed Income,Fund Manager,Managing Director,180000,3,Q4,169,false
+FM-038,Jason Fritz,Fixed Income,Fund Manager,Director,300000,5,Q3,713,true
+FM-039,Amanda Fernandez,Global Equities,Fund Manager,Junior,275000,4,Q5,822,true
+FM-040,Mark Craig,Quant Strategies,Fund Manager,Senior,210000,4,Q4,1420,true
+FM-041,Elaine Stevenson,Multi‑Asset,Fund Manager,Managing Director,110000,2,Q5,1015,false
+FM-042,Brian Smith,Global Equities,Fund Manager,Director,125000,4,Q4,1248,false
+FM-043,Richard Hughes,Multi‑Asset,Fund Manager,Senior,240000,2,Q1,617,true
+FM-044,Susan Benitez,Alternatives,Fund Manager,Senior,235000,3,Q1,568,true
+FM-045,Dylan Hansen,Global Equities,Fund Manager,Junior,150000,5,Q4,328,false
+FM-046,David Short,Global Equities,Fund Manager,Associate,100000,1,Q2,113,false
+FM-047,John Hall,Fixed Income,Fund Manager,Associate,220000,1,Q2,113,false
+FM-048,Tiffany Russell,Multi‑Asset,Fund Manager,Associate,230000,4,Q2,818,true
+FM-049,Emma Vega,Alternatives,Fund Manager,Junior,110000,3,Q4,748,false
+FM-050,Stacey Hamilton,Global Equities,Fund Manager,Managing Director,190000,4,Q1,1042,true

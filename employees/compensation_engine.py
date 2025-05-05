@@ -84,7 +84,7 @@ def calculate_unified_compensation(employee_data, config):
         'original_base': employee_data['base_salary'],
         'adjusted_base': base_salary_result['adjusted_base'],
         'base_salary_change': base_salary_result['base_salary_change'],
-        'effective_share%': bonus_result['effective_share'],
+        'effective_share': bonus_result['effective_share'],
         'raw_bonus': bonus_result['raw_bonus'],
         'performance_multiplier': bonus_result['performance_multiplier'],
         'performance_adjusted_bonus': bonus_result['performance_adjusted_bonus'],
@@ -107,31 +107,31 @@ def _validate_inputs(employee_data, config):
         ValueError: If required input data is missing or invalid
         KeyError: If required configuration parameters are missing
     """
-    # Check required employee data fields
-    required_employee_fields = [
-        'base_salary', 'aum', 'team_size', 'performance_quintile',
-        'last_year_revenue', 'mrt_status', 'role', 'level'
-    ]
+    # Required employee data fields
+    required_employee_fields = ['base_salary', 'aum', 'team_size', 'role', 'level']
     for field in required_employee_fields:
         if field not in employee_data:
-            raise KeyError(f"Missing required employee data field: {field}")
+            raise ValueError(f"Missing required employee data field: {field}")
 
-    # Check required config fields
-    required_config_fields = [
-        'revenue_delta', 'adjustment_factor', 'MAX_INCREASE', 'MAX_DECREASE',
-        'AUM_BRACKETS', 'AUM_BRACKET_SHARES', 'QUINTILE_MULTIPLIERS', 'MRT_BONUS_RATIO_CAP'
-    ]
-    for field in required_config_fields:
-        if field not in config:
-            raise KeyError(f"Missing required configuration field: {field}")
+    # Required configuration parameters
+    required_config_params = ['revenue_delta', 'adjustment_factor']
+    for param in required_config_params:
+        if param not in config:
+            raise KeyError(f"Missing required configuration parameter: {param}")
 
-    # Validate team_size
+    # Validate numeric values
+    if employee_data['base_salary'] <= Decimal('0'):
+        raise ValueError("Base salary must be positive")
+    if employee_data['aum'] < Decimal('0'):
+        raise ValueError("AUM cannot be negative")
     if employee_data['team_size'] < 1:
         raise ValueError("Team size must be at least 1")
 
-    # Validate performance quintile
-    if employee_data['performance_quintile'] not in config['QUINTILE_MULTIPLIERS']:
-        raise ValueError(f"Invalid performance quintile: {employee_data['performance_quintile']}")
+    # Ensure performance_quintile is valid if provided
+    if 'performance_quintile' in employee_data:
+        valid_quintiles = ['Q1', 'Q2', 'Q3', 'Q4', 'Q5']
+        if employee_data['performance_quintile'] not in valid_quintiles:
+            raise ValueError(f"Invalid performance quintile: {employee_data['performance_quintile']}")
 
 
 def _calculate_base_salary_adjustment(employee_data, config):
@@ -143,43 +143,42 @@ def _calculate_base_salary_adjustment(employee_data, config):
         config (dict): Configuration parameters
 
     Returns:
-        dict: Base salary adjustment results including:
+        dict: Base salary adjustment details including:
             - adjusted_base (Decimal): Adjusted base salary
             - base_salary_change (Decimal): Change in base salary
             - capped (bool): Whether the maximum increase cap was applied
             - floored (bool): Whether the minimum decrease floor was applied
     """
-    current_base = employee_data['base_salary']
+    # Extract parameters
+    base_salary = employee_data['base_salary']
     revenue_delta = config['revenue_delta']
     adjustment_factor = config['adjustment_factor']
-    max_increase = config['MAX_INCREASE']
-    max_decrease = config['MAX_DECREASE']
 
-    # Calculate tentative new base
-    raw_new_base = current_base * (Decimal('1') + revenue_delta * adjustment_factor)
+    # Calculate raw adjustment
+    raw_adjustment = base_salary * revenue_delta * adjustment_factor
 
-    # Initialize flags
+    # Apply caps and floors if configured
     capped = False
     floored = False
 
-    # Apply cap
-    max_allowed_base = current_base * (Decimal('1') + max_increase)
-    if raw_new_base > max_allowed_base:
-        adjusted_base = max_allowed_base
-        capped = True
-    # Apply floor
-    elif raw_new_base < current_base * (Decimal('1') + max_decrease):
-        adjusted_base = current_base * (Decimal('1') + max_decrease)
-        floored = True
-    else:
-        adjusted_base = raw_new_base
+    if 'MAX_INCREASE' in config and raw_adjustment > Decimal('0'):
+        max_increase = base_salary * config['MAX_INCREASE']
+        if raw_adjustment > max_increase:
+            raw_adjustment = max_increase
+            capped = True
 
-    # Calculate base salary change
-    base_salary_change = adjusted_base - current_base
+    if 'MAX_DECREASE' in config and raw_adjustment < Decimal('0'):
+        max_decrease = base_salary * config['MAX_DECREASE']
+        if raw_adjustment < -max_decrease:
+            raw_adjustment = -max_decrease
+            floored = True
+
+    # Calculate adjusted base salary
+    adjusted_base = base_salary + raw_adjustment
 
     return {
         'adjusted_base': adjusted_base,
-        'base_salary_change': base_salary_change,
+        'base_salary_change': raw_adjustment,
         'capped': capped,
         'floored': floored
     }
@@ -194,28 +193,33 @@ def _calculate_bonus(employee_data, config):
         config (dict): Configuration parameters
 
     Returns:
-        dict: Bonus calculation results including:
+        dict: Bonus calculation details including:
             - effective_share (Decimal): Effective revenue share percentage
-            - raw_bonus (Decimal): Raw bonus amount
+            - raw_bonus (Decimal): Raw bonus amount before performance adjustment
             - performance_multiplier (Decimal): Performance multiplier
             - performance_adjusted_bonus (Decimal): Bonus after performance adjustment
     """
     # Determine current revenue
     current_revenue = _determine_current_revenue(employee_data, config)
 
-    # Determine baseline revenue share percentage based on AUM bracket
+    # Determine baseline share percentage based on AUM
     baseline_share = _determine_baseline_share(employee_data['aum'], config)
 
-    # Apply team size scaling
-    team_scaling_factor = Decimal('1') / Decimal(str(employee_data['team_size']))
-    effective_share = baseline_share * team_scaling_factor
+    # Adjust for team size
+    team_size = max(1, employee_data['team_size'])  # Ensure at least 1
+    effective_share = baseline_share / Decimal(str(team_size))
 
     # Calculate raw bonus
     raw_bonus = current_revenue * effective_share
 
-    # Apply performance multiplier
-    performance_quintile = employee_data['performance_quintile']
-    performance_multiplier = config['QUINTILE_MULTIPLIERS'][performance_quintile]
+    # Apply performance multiplier if available
+    performance_multiplier = Decimal('1.0')  # Default multiplier
+    if 'performance_quintile' in employee_data and 'QUINTILE_MULTIPLIERS' in config:
+        quintile = employee_data['performance_quintile']
+        if quintile in config['QUINTILE_MULTIPLIERS']:
+            performance_multiplier = config['QUINTILE_MULTIPLIERS'][quintile]
+
+    # Calculate performance-adjusted bonus
     performance_adjusted_bonus = raw_bonus * performance_multiplier
 
     return {
@@ -246,7 +250,7 @@ def _determine_current_revenue(employee_data, config):
         return employee_data['aum'] * config['management_fee_rate']
 
     # Calculate from last year's revenue and revenue delta
-    last_year_revenue = employee_data['last_year_revenue']
+    last_year_revenue = employee_data.get('last_year_revenue', Decimal('0'))
     revenue_delta = config['revenue_delta']
     return last_year_revenue * (Decimal('1') + revenue_delta)
 
@@ -301,17 +305,24 @@ def _generate_diagnostic_flags(employee_data, config, adjusted_base,
     }
 
     # Check salary band breach
-    salary_band = lookup_salary_band(employee_data['role'], employee_data['level'])
-    if adjusted_base > salary_band['max']:
-        flags['band_breach'] = 'Above Max'
-    elif adjusted_base < salary_band['min']:
-        flags['band_breach'] = 'Below Min'
+    try:
+        salary_band = lookup_salary_band(employee_data['role'], employee_data['level'])
+        if salary_band:
+            if adjusted_base > salary_band['max']:
+                flags['band_breach'] = 'Above Max'
+            elif adjusted_base < salary_band['min']:
+                flags['band_breach'] = 'Below Min'
+    except Exception as e:
+        # Log the error but continue processing
+        print(f"Error looking up salary band: {str(e)}")
+        flags['band_breach'] = 'Error'
 
     # Check MRT regulatory compliance
-    if employee_data['mrt_status']:
-        mrt_cap = config['MRT_BONUS_RATIO_CAP']
-        if performance_adjusted_bonus > adjusted_base * mrt_cap:
-            flags['mrt_flag'] = 'Cap Exceeded'
+    if employee_data.get('mrt_status', False):
+        if 'MRT_BONUS_RATIO_CAP' in config:
+            mrt_cap = config['MRT_BONUS_RATIO_CAP']
+            if performance_adjusted_bonus > adjusted_base * mrt_cap:
+                flags['mrt_flag'] = 'Cap Exceeded'
         # Additional regulatory checks could be added here
         # For example: elif some_other_condition: flags['mrt_flag'] = 'Deferral Required'
 
@@ -322,7 +333,8 @@ def lookup_salary_band(role, level):
     """
     External dependency: Look up salary band for a given role and level.
     
-    This is a placeholder function that would be implemented elsewhere or mocked in tests.
+    This implementation provides a basic set of salary bands for common roles.
+    In a production environment, this would likely query a database or external service.
     
     Args:
         role (str): Employee's job role/title
@@ -331,7 +343,39 @@ def lookup_salary_band(role, level):
     Returns:
         dict: Salary band with min and max values
     """
-    # This function is expected to be provided externally
-    # For testing purposes, we could return mock values
-    # In a real implementation, this would likely query a database or external service
-    pass
+    # Default salary bands by role and level
+    salary_bands = {
+        'Fund Manager': {
+            'Junior': {'min': Decimal('100000'), 'max': Decimal('150000'), 'target': Decimal('125000')},
+            'Associate': {'min': Decimal('150000'), 'max': Decimal('200000'), 'target': Decimal('175000')},
+            'Director': {'min': Decimal('200000'), 'max': Decimal('300000'), 'target': Decimal('250000')},
+            'Managing Director': {'min': Decimal('300000'), 'max': Decimal('500000'), 'target': Decimal('400000')},
+        },
+        'Portfolio Manager': {
+            'Junior': {'min': Decimal('90000'), 'max': Decimal('130000'), 'target': Decimal('110000')},
+            'Associate': {'min': Decimal('130000'), 'max': Decimal('180000'), 'target': Decimal('155000')},
+            'Director': {'min': Decimal('180000'), 'max': Decimal('250000'), 'target': Decimal('215000')},
+            'Managing Director': {'min': Decimal('250000'), 'max': Decimal('400000'), 'target': Decimal('325000')},
+        },
+        'Analyst': {
+            'Junior': {'min': Decimal('70000'), 'max': Decimal('100000'), 'target': Decimal('85000')},
+            'Associate': {'min': Decimal('100000'), 'max': Decimal('140000'), 'target': Decimal('120000')},
+            'Director': {'min': Decimal('140000'), 'max': Decimal('200000'), 'target': Decimal('170000')},
+            'Managing Director': {'min': Decimal('200000'), 'max': Decimal('300000'), 'target': Decimal('250000')},
+        }
+    }
+    
+    # Normalize role and level to handle case variations
+    normalized_role = role.strip().title()
+    normalized_level = level.strip().title()
+    
+    # Look up the salary band
+    if normalized_role in salary_bands and normalized_level in salary_bands[normalized_role]:
+        return salary_bands[normalized_role][normalized_level]
+    
+    # Fallback for unknown roles/levels
+    return {
+        'min': Decimal('50000'),
+        'max': Decimal('500000'),
+        'target': Decimal('150000')
+    }

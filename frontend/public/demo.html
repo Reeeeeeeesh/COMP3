@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Compensation Calculator Demo</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap">
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+    }
+    .app-bar {
+      background-color: #003366;
+      color: white;
+      padding: 16px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 24px;
+    }
+    .card {
+      background-color: white;
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 0;
+    }
+    .btn {
+      background-color: #003366;
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .btn:hover {
+      background-color: #002244;
+    }
+    .btn:disabled {
+      background-color: #cccccc;
+      cursor: not-allowed;
+    }
+    .btn-secondary {
+      background-color: #29ABE2;
+    }
+    .btn-secondary:hover {
+      background-color: #1E8CB3;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-control {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .slider {
+      width: 100%;
+      margin: 16px 0;
+    }
+    .table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .table th, .table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    .table th {
+      background-color: #f5f5f5;
+      font-weight: 500;
+    }
+    .button-container {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-bar">
+    <h1>Compensation Calculator</h1>
+  </div>
+  
+  <div class="container">
+    <div class="grid">
+      <!-- Left Column - Controls -->
+      <div>
+        <div class="card">
+          <h2>Data Input</h2>
+          <div class="form-group">
+            <label for="file-upload">Upload Employee Data (CSV)</label>
+            <input type="file" id="file-upload" class="form-control" accept=".csv">
+          </div>
+          <button id="upload-btn" class="btn">Upload Data</button>
+        </div>
+        
+        <div class="card">
+          <h2>Scenario Parameters</h2>
+          <div class="form-group">
+            <label for="revenue-delta">Revenue Delta: <span id="revenue-delta-value">0%</span></label>
+            <input type="range" id="revenue-delta" class="slider" min="-20" max="20" value="0">
+          </div>
+          
+          <div class="form-group">
+            <label for="sensitivity">Sensitivity: <span id="sensitivity-value">50%</span></label>
+            <input type="range" id="sensitivity" class="slider" min="0" max="100" value="50">
+          </div>
+          
+          <div class="button-container">
+            <button id="run-simulation" class="btn" disabled>Run Simulation</button>
+            <button id="export-btn" class="btn btn-secondary" disabled>Export Results</button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Right Column - Results -->
+      <div>
+        <div id="summary-cards" style="display: none;">
+          <div class="card">
+            <h2>Scenario Summary</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;">
+              <div>
+                <h4>Total Payroll</h4>
+                <p id="total-payroll">$0</p>
+              </div>
+              <div>
+                <h4>Average Increase</h4>
+                <p id="avg-increase">0%</p>
+              </div>
+              <div>
+                <h4>MRT Breaches</h4>
+                <p id="mrt-breaches">0</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card">
+          <h2>Employee Data</h2>
+          <div style="overflow-x: auto;">
+            <table class="table" id="employee-table">
+              <thead>
+                <tr>
+                  <th>Employee ID</th>
+                  <th>Name</th>
+                  <th>Department</th>
+                  <th>Base Salary</th>
+                  <th>Performance Rating</th>
+                  <th>Adjusted Base</th>
+                  <th>% Change</th>
+                </tr>
+              </thead>
+              <tbody id="employee-data">
+                <tr>
+                  <td colspan="7" style="text-align: center;">No data available</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <div id="charts-section" class="card" style="display: none;">
+          <h2>Visualization</h2>
+          <p>Charts will be displayed here after running the simulation.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Simple demo functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('Demo page loaded successfully');
+      
+      // Get elements
+      const fileUpload = document.getElementById('file-upload');
+      const uploadBtn = document.getElementById('upload-btn');
+      const revenueDelta = document.getElementById('revenue-delta');
+      const revenueDeltaValue = document.getElementById('revenue-delta-value');
+      const sensitivity = document.getElementById('sensitivity');
+      const sensitivityValue = document.getElementById('sensitivity-value');
+      const runSimulation = document.getElementById('run-simulation');
+      const exportBtn = document.getElementById('export-btn');
+      const employeeData = document.getElementById('employee-data');
+      const summaryCards = document.getElementById('summary-cards');
+      const chartsSection = document.getElementById('charts-section');
+      
+      // Update slider values
+      revenueDelta.addEventListener('input', function() {
+        revenueDeltaValue.textContent = this.value + '%';
+      });
+      
+      sensitivity.addEventListener('input', function() {
+        sensitivityValue.textContent = this.value + '%';
+      });
+      
+      // Handle file upload
+      uploadBtn.addEventListener('click', function() {
+        if (fileUpload.files.length === 0) {
+          alert('Please select a CSV file to upload');
+          return;
+        }
+        
+        const file = fileUpload.files[0];
+        console.log('Uploading file:', file.name);
+        
+        // Simulate file upload
+        setTimeout(function() {
+          alert('File uploaded successfully!');
+          
+          // Enable run simulation button
+          runSimulation.disabled = false;
+          
+          // Display sample data
+          employeeData.innerHTML = `
+            <tr>
+              <td>E001</td>
+              <td>John Smith</td>
+              <td>Sales</td>
+              <td>$85,000</td>
+              <td>4</td>
+              <td>-</td>
+              <td>-</td>
+            </tr>
+            <tr>
+              <td>E002</td>
+              <td>Jane Doe</td>
+              <td>Marketing</td>
+              <td>$92,000</td>
+              <td>5</td>
+              <td>-</td>
+              <td>-</td>
+            </tr>
+            <tr>
+              <td>E003</td>
+              <td>Bob Johnson</td>
+              <td>Engineering</td>
+              <td>$110,000</td>
+              <td>3</td>
+              <td>-</td>
+              <td>-</td>
+            </tr>
+          `;
+        }, 1000);
+      });
+      
+      // Handle run simulation
+      runSimulation.addEventListener('click', function() {
+        console.log('Running simulation with:');
+        console.log('Revenue Delta:', revenueDelta.value + '%');
+        console.log('Sensitivity:', sensitivity.value + '%');
+        
+        // Simulate API call
+        setTimeout(function() {
+          // Show results
+          summaryCards.style.display = 'block';
+          chartsSection.style.display = 'block';
+          
+          // Update summary cards
+          document.getElementById('total-payroll').textContent = '$287,000';
+          document.getElementById('avg-increase').textContent = '3.2%';
+          document.getElementById('mrt-breaches').textContent = '0';
+          
+          // Update employee data with results
+          employeeData.innerHTML = `
+            <tr>
+              <td>E001</td>
+              <td>John Smith</td>
+              <td>Sales</td>
+              <td>$85,000</td>
+              <td>4</td>
+              <td>$88,400</td>
+              <td>4.0%</td>
+            </tr>
+            <tr>
+              <td>E002</td>
+              <td>Jane Doe</td>
+              <td>Marketing</td>
+              <td>$92,000</td>
+              <td>5</td>
+              <td>$96,600</td>
+              <td>5.0%</td>
+            </tr>
+            <tr>
+              <td>E003</td>
+              <td>Bob Johnson</td>
+              <td>Engineering</td>
+              <td>$110,000</td>
+              <td>3</td>
+              <td>$112,200</td>
+              <td>2.0%</td>
+            </tr>
+          `;
+          
+          // Enable export button
+          exportBtn.disabled = false;
+          
+          // Update charts section
+          chartsSection.innerHTML = `
+            <h2>Visualization</h2>
+            <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+              <div style="width: 48%;">
+                <h3>Salary Distribution</h3>
+                <div style="background-color: #f5f5f5; height: 200px; display: flex; align-items: flex-end; padding: 10px;">
+                  <div style="height: 60%; width: 30%; background-color: #003366; margin-right: 5%;"></div>
+                  <div style="height: 80%; width: 30%; background-color: #003366; margin-right: 5%;"></div>
+                  <div style="height: 40%; width: 30%; background-color: #003366;"></div>
+                </div>
+              </div>
+              <div style="width: 48%;">
+                <h3>Performance Rating Distribution</h3>
+                <div style="background-color: #f5f5f5; height: 200px; display: flex; align-items: flex-end; padding: 10px;">
+                  <div style="height: 20%; width: 18%; background-color: #29ABE2; margin-right: 2%;"></div>
+                  <div style="height: 40%; width: 18%; background-color: #29ABE2; margin-right: 2%;"></div>
+                  <div style="height: 60%; width: 18%; background-color: #29ABE2; margin-right: 2%;"></div>
+                  <div style="height: 80%; width: 18%; background-color: #29ABE2; margin-right: 2%;"></div>
+                  <div style="height: 100%; width: 18%; background-color: #29ABE2;"></div>
+                </div>
+              </div>
+            </div>
+          `;
+        }, 1500);
+      });
+      
+      // Handle export
+      exportBtn.addEventListener('click', function() {
+        alert('Results exported to CSV!');
+      });
+    });
+  </script>
+</body>
+</html>

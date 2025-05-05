@@ -15,8 +15,8 @@ import {
   Grid
 } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import UploadFileIcon from '@mui/icons-material/UploadFile';
 import { ScenarioProvider, useScenario, ActionType } from './SimpleContext';
+import UploadPanel from './components/controls/UploadPanel';
 
 // Revenue Delta Slider Component
 const RevenueDeltaSlider = () => {
@@ -85,87 +85,6 @@ const SensitivitySlider = () => {
   );
 };
 
-// Mock Upload Component
-const UploadPanel = () => {
-  const { dispatch } = useScenario();
-  
-  const handleUpload = () => {
-    // Mock employee data
-    const mockEmployees = [
-      {
-        id: '1',
-        name: 'John Doe',
-        department: 'Sales',
-        role: 'Account Manager',
-        base_salary: 80000,
-        performance_rating: 4,
-        quintile: 'Q2',
-        aum: 5,
-        is_mrt: false
-      },
-      {
-        id: '2',
-        name: 'Jane Smith',
-        department: 'Marketing',
-        role: 'Marketing Manager',
-        base_salary: 90000,
-        performance_rating: 5,
-        quintile: 'Q1',
-        aum: 0,
-        is_mrt: false
-      },
-      {
-        id: '3',
-        name: 'Bob Johnson',
-        department: 'Finance',
-        role: 'Financial Advisor',
-        base_salary: 120000,
-        performance_rating: 3,
-        quintile: 'Q3',
-        aum: 15,
-        is_mrt: true
-      }
-    ];
-    
-    dispatch({
-      type: ActionType.SET_EMPLOYEES,
-      payload: mockEmployees
-    });
-  };
-  
-  return (
-    <Box sx={{ mb: 3 }}>
-      <Paper
-        sx={{
-          p: 3,
-          border: '2px dashed',
-          borderColor: 'primary.main',
-          borderRadius: 2,
-          textAlign: 'center',
-          mb: 2
-        }}
-      >
-        <UploadFileIcon sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
-        <Typography variant="h6" gutterBottom>
-          Upload Employee Data
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Drag & drop a CSV file or click to browse
-        </Typography>
-      </Paper>
-      
-      <Button
-        variant="contained"
-        color="primary"
-        fullWidth
-        onClick={handleUpload}
-      >
-        Load Sample Data
-      </Button>
-    </Box>
-  );
-};
-
 // Summary Component
 const SummaryCards = () => {
   const { state } = useScenario();
@@ -214,6 +133,92 @@ const AppContent = () => {
   const { employees, loading, error } = state;
   const [successMessage, setSuccessMessage] = useState(null);
   
+  // Sample employee data for testing
+  const sampleEmployees = [
+    {
+      id: 'FM-001',
+      name: 'Jennifer Santana',
+      department: 'Global Equities',
+      role: 'Fund Manager',
+      base_salary: 175000,
+      performance_rating: 5,
+      quintile: 'Q5',
+      aum: 509,
+      is_mrt: true
+    },
+    {
+      id: 'FM-002',
+      name: 'April Bowman',
+      department: 'Global Equities',
+      role: 'Fund Manager',
+      base_salary: 265000,
+      performance_rating: 4,
+      quintile: 'Q2',
+      aum: 490,
+      is_mrt: false
+    },
+    {
+      id: 'FM-003',
+      name: 'Patrick Thompson',
+      department: 'Quant Strategies',
+      role: 'Fund Manager',
+      base_salary: 200000,
+      performance_rating: 4,
+      quintile: 'Q2',
+      aum: 1231,
+      is_mrt: true
+    }
+  ];
+  
+  // Load sample data
+  const handleLoadSampleData = () => {
+    dispatch({
+      type: ActionType.SET_EMPLOYEES,
+      payload: sampleEmployees
+    });
+    setSuccessMessage('Sample data loaded successfully');
+  };
+  
+  // Clear all employee data
+  const handleClearData = () => {
+    dispatch({
+      type: ActionType.SET_EMPLOYEES,
+      payload: []
+    });
+    dispatch({
+      type: ActionType.SET_RESULTS,
+      payload: { results: null, summary: null }
+    });
+    setSuccessMessage('Employee data cleared');
+  };
+  
+  // Create test data with 50 employees
+  const handleCreateTestData = () => {
+    const numEmployees = 50;
+    const departments = ['Global Equities', 'Quant Strategies', 'Alternatives'];
+    const roles = ['Fund Manager', 'Portfolio Manager', 'Analyst'];
+    const levels = ['Junior', 'Associate', 'Director', 'Managing Director'];
+    const quintiles = ['Q1', 'Q2', 'Q3', 'Q4', 'Q5'];
+    
+    const testEmployees = Array.from({ length: numEmployees }, (_, i) => ({
+      id: `EMP-${i + 1}`.padStart(6, '0'),
+      name: `Test Employee ${i + 1}`,
+      department: departments[i % departments.length],
+      role: roles[i % roles.length],
+      base_salary: 100000 + Math.floor(Math.random() * 200000),
+      performance_rating: 1 + Math.floor(Math.random() * 5),
+      quintile: quintiles[i % quintiles.length],
+      aum: Math.floor(Math.random() * 1000),
+      is_mrt: i % 5 === 0
+    }));
+    
+    dispatch({
+      type: ActionType.SET_EMPLOYEES,
+      payload: testEmployees
+    });
+    setSuccessMessage(`Created ${numEmployees} test employees`);
+  };
+  
   const handleRunSimulation = () => {
     if (!employees || employees.length === 0) {
       dispatch({
@@ -228,45 +233,97 @@ const AppContent = () => {
     
     // Simulate API call delay
     setTimeout(() => {
-      // Mock results
-      const mockResults = employees.map(emp => ({
-        employee_id: emp.id,
-        adjusted_salary: emp.base_salary * (1 + (state.scenario.revenueDelta / 100) * state.scenario.sensitivityFactor),
-        salary_change: emp.base_salary * ((state.scenario.revenueDelta / 100) * state.scenario.sensitivityFactor),
-        bonus: emp.base_salary * 0.15 * emp.performance_rating / 3,
-        total_compensation: 0, // Will be calculated below
-        flags: []
-      }));
-      
-      // Calculate total_compensation
-      mockResults.forEach(result => {
-        result.total_compensation = result.adjusted_salary + result.bonus;
-      });
-      
-      // Mock summary
-      const mockSummary = {
-        total_payroll: mockResults.reduce((sum, r) => sum + r.total_compensation, 0),
-        avg_base_increase: state.scenario.revenueDelta * state.scenario.sensitivityFactor,
-        mrt_breaches: 0,
-        total_flags: 0,
-        total_employees: employees.length,
-        flag_distribution: {}
-      };
-      
-      // Update state with results
-      dispatch({
-        type: ActionType.SET_RESULTS,
-        payload: {
-          results: mockResults,
-          summary: mockSummary
-        }
-      });
-      
-      // Show success message
-      setSuccessMessage('Simulation completed successfully');
-      
-      // Clear loading state
-      dispatch({ type: ActionType.SET_LOADING, payload: false });
+      try {
+        console.log("Running simulation with employees:", employees);
+        
+        // Mock results
+        const mockResults = employees.map(emp => {
+          const baseSalary = parseFloat(emp.base_salary) || 0;
+          const performanceRating = parseInt(emp.performance_rating) || 3;
+          const revenueImpact = (state.scenario.revenueDelta / 100) * state.scenario.sensitivityFactor;
+          
+          // Calculate adjusted salary with revenue impact
+          const adjustedSalary = baseSalary * (1 + revenueImpact);
+          
+          // Calculate salary change
+          const salaryChange = adjustedSalary - baseSalary;
+          
+          // Calculate bonus (simplified formula)
+          const bonus = baseSalary * 0.15 * (performanceRating / 3);
+          
+          // Calculate total compensation
+          const totalCompensation = adjustedSalary + bonus;
+          
+          // Generate mock flags
+          const flags = [];
+          if (emp.is_mrt && revenueImpact < 0) {
+            flags.push('MRT_DECREASE');
+          }
+          if (revenueImpact > 0.1) {
+            flags.push('HIGH_INCREASE');
+          }
+          
+          return {
+            employee_id: emp.id,
+            name: emp.name,
+            department: emp.department,
+            adjusted_salary: adjustedSalary,
+            salary_change: salaryChange,
+            bonus: bonus,
+            total_compensation: totalCompensation,
+            flags: flags
+          };
+        });
+        
+        // Calculate summary metrics
+        const totalPayroll = mockResults.reduce((sum, r) => sum + r.total_compensation, 0);
+        const avgBaseIncrease = state.scenario.revenueDelta * state.scenario.sensitivityFactor;
+        const mrtBreaches = mockResults.filter(r => r.flags.includes('MRT_DECREASE')).length;
+        const totalFlags = mockResults.reduce((sum, r) => sum + r.flags.length, 0);
+        
+        // Create flag distribution
+        const flagDistribution = {};
+        mockResults.forEach(result => {
+          result.flags.forEach(flag => {
+            flagDistribution[flag] = (flagDistribution[flag] || 0) + 1;
+          });
+        });
+        
+        // Mock summary
+        const mockSummary = {
+          total_payroll: totalPayroll,
+          avg_base_increase: avgBaseIncrease,
+          mrt_breaches: mrtBreaches,
+          total_flags: totalFlags,
+          total_employees: employees.length,
+          flag_distribution: flagDistribution
+        };
+        
+        console.log("Simulation results:", mockResults);
+        console.log("Summary:", mockSummary);
+        
+        // Update state with results
+        dispatch({
+          type: ActionType.SET_RESULTS,
+          payload: {
+            results: mockResults,
+            summary: mockSummary
+          }
+        });
+        
+        // Show success message
+        setSuccessMessage('Simulation completed successfully');
+      } catch (err) {
+        console.error("Simulation error:", err);
+        // Handle any errors
+        dispatch({
+          type: ActionType.SET_ERROR,
+          payload: `Error running simulation: ${err.message}`
+        });
+      } finally {
+        // Clear loading state
+        dispatch({ type: ActionType.SET_LOADING, payload: false });
+      }
     }, 1500);
   };
   
@@ -308,6 +365,39 @@ const AppContent = () => {
           
           <Box sx={{ mb: 3 }}>
             <UploadPanel />
+            
+            {/* Data Management Buttons */}
+            <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+              <Button
+                variant="outlined"
+                color="secondary"
+                onClick={handleLoadSampleData}
+                disabled={loading}
+                sx={{ flex: 1 }}
+              >
+                Load 3 Sample Employees
+              </Button>
+              
+              <Button
+                variant="outlined"
+                color="info"
+                onClick={handleCreateTestData}
+                disabled={loading}
+                sx={{ flex: 1 }}
+              >
+                Create 50 Test Employees
+              </Button>
+              
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={handleClearData}
+                disabled={loading || !employees || employees.length === 0}
+                sx={{ flex: 1 }}
+              >
+                Clear Data
+              </Button>
+            </Box>
           </Box>
           
           <Divider sx={{ my: 3 }} />
@@ -324,13 +414,15 @@ const AppContent = () => {
             <SensitivitySlider />
           </Box>
           
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
             <Button
               variant="contained"
               color="primary"
+              size="large"
               startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <PlayArrowIcon />}
               onClick={handleRunSimulation}
               disabled={loading || !employees || employees.length === 0}
+              sx={{ px: 4, py: 1.5 }}
             >
               {loading ? 'Running...' : 'Run Simulation'}
             </Button>
@@ -346,9 +438,24 @@ const AppContent = () => {
             <Typography variant="h6" gutterBottom>
               Employee Data
             </Typography>
-            <Typography variant="body2">
+            <Typography variant="body2" sx={{ mb: 2 }}>
               {employees.length} employees loaded. Run a simulation to see results.
             </Typography>
+            
+            {/* Display first 5 employees only to avoid overwhelming the UI */}
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="subtitle2" gutterBottom>
+                Sample of loaded employees (showing first 5):
+              </Typography>
+              <pre style={{ overflowX: 'auto', fontSize: '0.8rem' }}>
+                {JSON.stringify(employees.slice(0, 5), null, 2)}
+              </pre>
+              {employees.length > 5 && (
+                <Typography variant="caption" color="text.secondary">
+                  ...and {employees.length - 5} more employees
+                </Typography>
+              )}
+            </Box>
           </Paper>
         )}
       </Container>

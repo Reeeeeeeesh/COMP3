@@ -1,8 +1,8 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import CompleteApp from './CompleteApp'
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
+import CompleteApp from './CompleteApp';
 
 // Add debugging logs
 console.log('main.jsx is executing');
