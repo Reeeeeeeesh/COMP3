@@ -24,8 +24,7 @@ import {
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import InsightsIcon from '@mui/icons-material/Insights';
 import TableChartIcon from '@mui/icons-material/TableChart';
-import { useScenario } from './SimpleContext';
-import { ActionType } from './types';
+import { useScenario, ActionType } from './SimpleContext';
 import { calculateScenario } from './api/compensationService';
 
 // Import components
